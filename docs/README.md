@@ -10,5 +10,7 @@ Feature contracts live in `docs/features`. Each file describes the goal, data mo
 | 04 | [Reader shell (UI)](features/04-reader-shell.md) | Implemented |
 | 05 | [Reading sessions](features/05-reading-sessions.md) | Implemented |
 | 06 | [Book page](features/06-book-page.md) | Implemented |
+| 07 | [Reading calendar and pace](features/07-reading-calendar.md) | Implemented |
+| 08 | [Book session history](features/08-book-session-history.md) | Implemented |
 
 Website and Telegram bot are two clients of the same application actions. Domain rules do not live in HTTP controllers or bot handlers.

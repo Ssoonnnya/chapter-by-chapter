@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Heart } from '@lucide/vue';
 import LibraryController from '@/actions/App/Http/Controllers/LibraryController';
+import BookSessionHistory from '@/components/BookSessionHistory.vue';
 import ReadingSessionPanel from '@/components/ReadingSessionPanel.vue';
 import { Button } from '@/components/ui/button';
 import { index as library } from '@/routes/library';
@@ -37,10 +38,23 @@ type OpenSession = {
     paused_seconds: number;
 };
 
+type Session = {
+    id: number;
+    started_at: string;
+    ended_at: string;
+    start_page: number;
+    end_page: number;
+    pages: number;
+    seconds: number;
+    minutes: number;
+    pages_per_hour: number | null;
+};
+
 const props = defineProps<{
     book: Book;
     libraryItem: LibraryItem | null;
     openSession: OpenSession | null;
+    sessions: Session[];
 }>();
 
 defineOptions({
@@ -144,5 +158,7 @@ function addToLibrary(): void {
                 />
             </div>
         </div>
+
+        <BookSessionHistory :sessions="sessions" />
     </div>
 </template>

@@ -113,4 +113,19 @@ class IncomingTelegramMessageTest extends TestCase
 
         $this->assertSame(42, $page?->barePageNumber());
     }
+
+    public function test_it_parses_stats(): void
+    {
+        $stats = IncomingTelegramMessage::tryFromWebhook([
+            'message' => [
+                'chat' => ['id' => 10],
+                'from' => ['id' => 10],
+                'text' => '/stats',
+            ],
+        ]);
+
+        $this->assertNotNull($stats);
+        $this->assertTrue($stats->isStatsCommand());
+        $this->assertFalse($stats->isReadCommand());
+    }
 }

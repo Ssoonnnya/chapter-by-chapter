@@ -87,6 +87,11 @@ final readonly class IncomingTelegramMessage
         return $this->isCommand('read');
     }
 
+    public function isStatsCommand(): bool
+    {
+        return $this->isCommand('stats');
+    }
+
     public function barePageNumber(): ?int
     {
         if (! preg_match('/^\d+$/u', trim($this->text))) {

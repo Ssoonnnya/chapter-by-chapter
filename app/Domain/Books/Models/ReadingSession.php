@@ -3,13 +3,13 @@
 namespace App\Domain\Books\Models;
 
 use App\Models\User;
+use Carbon\CarbonInterface;
 use Database\Factories\ReadingSessionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 /**
@@ -87,6 +87,15 @@ class ReadingSession extends Model
         return $query->whereNull('ended_at');
     }
 
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
+    public function scopeStopped(Builder $query): Builder
+    {
+        return $query->whereNotNull('ended_at')->whereNotNull('end_page');
+    }
+
     public static function openFor(User $user): ?self
     {
         return self::query()
@@ -113,6 +122,40 @@ class ReadingSession extends Model
         }
 
         return $this->end_page - $this->start_page;
+    }
+
+    public function pagesPerHour(): ?float
+    {
+        $seconds = $this->durationSeconds();
+        $pages = $this->pagesRead();
+
+        if ($seconds === null || $seconds === 0 || $pages === null) {
+            return null;
+        }
+
+        return round($pages / ($seconds / 3600), 1);
+    }
+
+    /**
+     * @return array{id: int, started_at: string, ended_at: string, start_page: int, end_page: int, pages: int, seconds: int, minutes: int, pages_per_hour: float|null}
+     */
+    public function toHistoryPayload(): array
+    {
+        $endedAt = $this->ended_at;
+        $endPage = $this->end_page;
+        $seconds = $this->durationSeconds() ?? 0;
+
+        return [
+            'id' => $this->id,
+            'started_at' => $this->started_at->toIso8601String(),
+            'ended_at' => $endedAt?->toIso8601String() ?? $this->started_at->toIso8601String(),
+            'start_page' => $this->start_page,
+            'end_page' => $endPage ?? $this->start_page,
+            'pages' => $this->pagesRead() ?? 0,
+            'seconds' => $seconds,
+            'minutes' => intdiv($seconds, 60),
+            'pages_per_hour' => $this->pagesPerHour(),
+        ];
     }
 
     public function durationSeconds(): ?int

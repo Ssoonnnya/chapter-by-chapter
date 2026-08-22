@@ -176,5 +176,12 @@ class ReadingSessionTest extends TestCase
         $this->assertCount(1, $all);
         $this->assertCount(1, $filtered);
         $this->assertSame($item->id, $all->first()?->library_item_id);
+
+        ReadingSession::factory()->for($user)->for($item, 'libraryItem')->create();
+
+        $stopped = app(ListReadingSessions::class)->handle($user, $item->id, stoppedOnly: true);
+
+        $this->assertCount(1, $stopped);
+        $this->assertNotNull($stopped->first()?->end_page);
     }
 }

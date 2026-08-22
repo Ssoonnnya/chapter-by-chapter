@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\LibraryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,6 +18,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::redirect('dashboard', '/library')->name('dashboard');
 
     Route::get('books/{googleVolume}', [BookController::class, 'show'])->name('books.show');
+
+    Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
 
     Route::get('library', [LibraryController::class, 'index'])->name('library.index');
     Route::get('library/suggestions', [LibraryController::class, 'suggestions'])

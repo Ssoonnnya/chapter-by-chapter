@@ -55,7 +55,7 @@ Shown on the shelf card and the book page.
 | `PauseReadingSession` | Open running session. Sets `paused_at` |
 | `ResumeReadingSession` | Open paused session. Adds elapsed pause to `paused_seconds`, clears `paused_at` |
 | `CancelReadingSession` | Closes without changing the page |
-| `ListReadingSessions` | Owner only; optional `library_item_id` |
+| `ListReadingSessions` | Owner only; optional `library_item_id`; optional stopped-only filter |
 
 ## Website
 

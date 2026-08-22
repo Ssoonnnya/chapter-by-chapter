@@ -158,4 +158,25 @@ final class BotReplies
     {
         return "Now reading: {$title}. {$elapsed}. Started on page {$page}.";
     }
+
+    public static function monthStatsEmpty(string $monthLabel): string
+    {
+        return "No finished reading sessions in {$monthLabel}.";
+    }
+
+    public static function monthStats(
+        string $monthLabel,
+        int $sessions,
+        int $pages,
+        int $minutes,
+        ?float $pagesPerHour,
+    ): string {
+        $line = "{$monthLabel}: {$sessions} sessions · {$pages} pages · {$minutes} min";
+
+        if ($pagesPerHour !== null) {
+            $line .= ' · '.$pagesPerHour.' pages/hour';
+        }
+
+        return $line;
+    }
 }

@@ -14,6 +14,7 @@ final class BotCommands
             ['command' => 'search', 'description' => 'Find a book by title'],
             ['command' => 'library', 'description' => 'Your books'],
             ['command' => 'read', 'description' => 'Start or stop a reading session'],
+            ['command' => 'stats', 'description' => "This month's reading"],
         ];
     }
 }

@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import { index as calendar } from '@/routes/calendar';
 import { index as library } from '@/routes/library';
 import type { BreadcrumbItem } from '@/types';
 
@@ -30,12 +31,20 @@ const siteName = computed(() => page.props.name);
     <div>
         <div class="border-b border-sidebar-border/80 bg-card/70">
             <div class="mx-auto flex h-16 items-center gap-3 px-4 md:max-w-7xl">
-                <Link
-                    :href="library()"
-                    class="shrink-0 font-serif text-lg tracking-tight text-foreground"
-                >
-                    {{ siteName }}
-                </Link>
+                <div class="flex shrink-0 items-baseline gap-3">
+                    <Link
+                        :href="library()"
+                        class="font-serif text-lg tracking-tight text-foreground"
+                    >
+                        {{ siteName }}
+                    </Link>
+                    <Link
+                        :href="calendar()"
+                        class="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                        Calendar
+                    </Link>
+                </div>
 
                 <div class="min-w-0 flex-1 md:mx-6 md:max-w-xl">
                     <BookSearch compact />

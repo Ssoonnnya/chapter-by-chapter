@@ -12,6 +12,7 @@ use App\Telegram\BotReplies;
 use App\Telegram\Contracts\TelegramMessenger;
 use App\Telegram\Testing\FakeTelegramMessenger;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\Concerns\BuildsBookCards;
 use Tests\Concerns\InteractsWithTelegram;
 use Tests\TestCase;
@@ -191,6 +192,41 @@ class BookBotTest extends TestCase
         $this->assertSame(22, $item->fresh()?->current_page);
         $this->assertNull(ReadingSession::openFor($user));
         $this->assertStringContainsString('page 22', implode("\n", $this->messenger()->texts()));
+    }
+
+    public function test_stats_without_identity_is_guest(): void
+    {
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramStartUpdate('/stats'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertSame([BotReplies::guest()], $this->messenger()->texts());
+    }
+
+    public function test_stats_summarizes_this_month(): void
+    {
+        $this->travelTo(Carbon::parse('2026-08-15 12:00:00'));
+
+        $user = User::factory()->withTelegram(111222333)->create();
+        $item = LibraryItem::factory()->for($user)->reading()->create();
+
+        ReadingSession::factory()->for($user)->for($item)->stopped(20)->create([
+            'start_page' => 10,
+            'started_at' => Carbon::parse('2026-08-02 10:00:00'),
+            'ended_at' => Carbon::parse('2026-08-02 11:00:00'),
+        ]);
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramStartUpdate('/stats'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertSame([
+            BotReplies::monthStats('August 2026', 1, 10, 60, 10.0),
+        ], $this->messenger()->texts());
     }
 
     public function test_read_cancel_leaves_the_page_unchanged(): void

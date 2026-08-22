@@ -11,6 +11,7 @@ use App\Telegram\Handlers\ReadCallbackHandler;
 use App\Telegram\Handlers\ReadHandler;
 use App\Telegram\Handlers\SearchHandler;
 use App\Telegram\Handlers\StartHandler;
+use App\Telegram\Handlers\StatsHandler;
 use App\Telegram\Handlers\StopPageHandler;
 
 class TelegramWebhookProcessor
@@ -20,6 +21,7 @@ class TelegramWebhookProcessor
         private readonly SearchHandler $searchHandler,
         private readonly LibraryHandler $libraryHandler,
         private readonly ReadHandler $readHandler,
+        private readonly StatsHandler $statsHandler,
         private readonly StopPageHandler $stopPageHandler,
         private readonly AddBookCallbackHandler $addBookCallbackHandler,
         private readonly LibraryCallbackHandler $libraryCallbackHandler,
@@ -77,6 +79,12 @@ class TelegramWebhookProcessor
 
         if ($message->isReadCommand()) {
             $this->readHandler->handle($message);
+
+            return;
+        }
+
+        if ($message->isStatsCommand()) {
+            $this->statsHandler->handle($message);
 
             return;
         }

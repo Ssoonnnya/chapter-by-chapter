@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Books\Actions\FindOrImportBook;
+use App\Domain\Books\Actions\ListReadingSessions;
 use App\Domain\Books\Exceptions\BookNotFound;
 use App\Domain\Books\Exceptions\UnsupportedBookLanguage;
 use App\Domain\Books\Models\Book;
@@ -15,8 +16,12 @@ use Inertia\Response;
 
 class BookController extends Controller
 {
-    public function show(Request $request, string $googleVolume, FindOrImportBook $findOrImportBook): Response
-    {
+    public function show(
+        Request $request,
+        string $googleVolume,
+        FindOrImportBook $findOrImportBook,
+        ListReadingSessions $listReadingSessions,
+    ): Response {
         try {
             $book = $findOrImportBook->handle($googleVolume);
         } catch (BookNotFound|UnsupportedBookLanguage) {
@@ -29,6 +34,9 @@ class BookController extends Controller
             ->where('book_id', $book->id)
             ->first();
         $open = ReadingSession::openFor($user);
+        $sessions = $item === null
+            ? collect()
+            : $listReadingSessions->handle($user, $item->id, stoppedOnly: true);
 
         return Inertia::render('books/Show', [
             'book' => $this->bookPayload($book),
@@ -39,6 +47,10 @@ class BookController extends Controller
                 'page_count' => $book->page_count,
             ],
             'openSession' => $open?->toOpenPayload(),
+            'sessions' => $sessions
+                ->map(fn (ReadingSession $session): array => $session->toHistoryPayload())
+                ->values()
+                ->all(),
         ]);
     }
 
