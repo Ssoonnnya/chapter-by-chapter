@@ -88,4 +88,29 @@ class IncomingTelegramMessageTest extends TestCase
 
         $this->assertSame('reading', $filtered?->libraryFilter());
     }
+
+    public function test_it_parses_read_and_a_bare_page_number(): void
+    {
+        $read = IncomingTelegramMessage::tryFromWebhook([
+            'message' => [
+                'chat' => ['id' => 10],
+                'from' => ['id' => 10],
+                'text' => '/read',
+            ],
+        ]);
+
+        $this->assertNotNull($read);
+        $this->assertTrue($read->isReadCommand());
+        $this->assertNull($read->barePageNumber());
+
+        $page = IncomingTelegramMessage::tryFromWebhook([
+            'message' => [
+                'chat' => ['id' => 10],
+                'from' => ['id' => 10],
+                'text' => '42',
+            ],
+        ]);
+
+        $this->assertSame(42, $page?->barePageNumber());
+    }
 }

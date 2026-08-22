@@ -13,6 +13,7 @@ final class BotCommands
             ['command' => 'start', 'description' => 'Connect your account'],
             ['command' => 'search', 'description' => 'Find a book by title'],
             ['command' => 'library', 'description' => 'Your books'],
+            ['command' => 'read', 'description' => 'Start or stop a reading session'],
         ];
     }
 }

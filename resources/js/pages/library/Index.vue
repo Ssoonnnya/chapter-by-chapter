@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import LibraryController from '@/actions/App/Http/Controllers/LibraryController';
+import BookProgress from '@/components/BookProgress.vue';
 import BookSearch from '@/components/BookSearch.vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { show as showBook } from '@/routes/books';
 import { index as library } from '@/routes/library';
 
 type ShelfStatus = 'want' | 'reading' | 'finished';
 
 type LibraryBook = {
     id: number;
+    google_volume_id: string;
     title: string;
     authors: string[];
-    description: string | null;
     cover_url: string | null;
     language: string | null;
     status: ShelfStatus;
@@ -22,9 +22,17 @@ type LibraryBook = {
     page_count: number | null;
 };
 
+type OpenSession = {
+    id: number;
+    library_item_id: number;
+    started_at: string;
+    start_page: number;
+};
+
 const props = defineProps<{
     books: LibraryBook[];
     filter: ShelfStatus | null;
+    openSession: OpenSession | null;
 }>();
 
 const statuses: { value: ShelfStatus; label: string }[] = [
@@ -59,14 +67,8 @@ function updateStatus(id: number, status: ShelfStatus): void {
     );
 }
 
-function savePage(id: number, event: Event): void {
-    const value = Number((event.target as HTMLInputElement).value);
-
-    router.patch(
-        LibraryController.updatePage.url(id),
-        { current_page: value },
-        { preserveScroll: true },
-    );
+function isOpen(book: LibraryBook): boolean {
+    return props.openSession?.library_item_id === book.id;
 }
 </script>
 
@@ -116,15 +118,22 @@ function savePage(id: number, event: Event): void {
                 :key="book.id"
                 class="flex gap-4 rounded-xl border p-4"
             >
-                <img
-                    v-if="book.cover_url"
-                    :src="book.cover_url"
-                    :alt="book.title"
-                    class="h-24 w-16 shrink-0 rounded object-cover"
-                />
+                <Link :href="showBook(book.google_volume_id)" class="shrink-0">
+                    <img
+                        v-if="book.cover_url"
+                        :src="book.cover_url"
+                        :alt="book.title"
+                        class="h-24 w-16 rounded object-cover"
+                    />
+                </Link>
                 <div class="min-w-0 flex-1 space-y-3">
                     <div class="space-y-1">
-                        <h2 class="font-medium">{{ book.title }}</h2>
+                        <Link
+                            :href="showBook(book.google_volume_id)"
+                            class="font-medium hover:underline"
+                        >
+                            {{ book.title }}
+                        </Link>
                         <p class="text-sm text-muted-foreground">
                             {{
                                 book.authors.length
@@ -136,11 +145,17 @@ function savePage(id: number, event: Event): void {
                             </span>
                         </p>
                         <p
-                            v-if="book.description"
-                            class="line-clamp-3 text-sm text-muted-foreground"
+                            v-if="isOpen(book)"
+                            class="text-xs font-medium text-accent-foreground"
+                            data-test="reading-now"
                         >
-                            {{ book.description }}
+                            Reading now
                         </p>
+                        <BookProgress
+                            :status="book.status"
+                            :current-page="book.current_page"
+                            :page-count="book.page_count"
+                        />
                     </div>
 
                     <div class="flex flex-wrap gap-2">
@@ -157,26 +172,6 @@ function savePage(id: number, event: Event): void {
                         >
                             {{ item.label }}
                         </Button>
-                    </div>
-
-                    <div class="flex max-w-xs items-end gap-2">
-                        <div class="grid flex-1 gap-1">
-                            <Label :for="`page-${book.id}`">Page</Label>
-                            <Input
-                                :id="`page-${book.id}`"
-                                type="number"
-                                min="0"
-                                :max="book.page_count ?? undefined"
-                                :default-value="book.current_page"
-                                @change="savePage(book.id, $event)"
-                            />
-                        </div>
-                        <p
-                            v-if="book.page_count"
-                            class="pb-2 text-sm text-muted-foreground"
-                        >
-                            / {{ book.page_count }}
-                        </p>
                     </div>
                 </div>
             </li>

@@ -48,7 +48,7 @@ const siteName = computed(() => page.props.name);
                         <DropdownMenuTrigger :as-child="true">
                             <button
                                 type="button"
-                                class="rounded-full border bg-background px-3 py-1.5 text-sm font-medium text-foreground shadow-sm"
+                                class="cursor-pointer rounded-full border bg-background px-3 py-1.5 text-sm font-medium text-foreground shadow-sm hover:bg-secondary"
                                 data-test="user-menu"
                             >
                                 {{ auth.user.name }}

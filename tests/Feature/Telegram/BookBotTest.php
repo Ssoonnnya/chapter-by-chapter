@@ -5,6 +5,7 @@ namespace Tests\Feature\Telegram;
 use App\Domain\Books\Enums\LibraryStatus;
 use App\Domain\Books\Models\Book;
 use App\Domain\Books\Models\LibraryItem;
+use App\Domain\Books\Models\ReadingSession;
 use App\Domain\Books\Testing\FakeBookProvider;
 use App\Models\User;
 use App\Telegram\BotReplies;
@@ -121,6 +122,102 @@ class BookBotTest extends TestCase
         $text = $this->messenger()->texts()[0];
         $this->assertStringContainsString('Current', $text);
         $this->assertStringNotContainsString('Wanted', $text);
+    }
+
+    public function test_read_without_identity_is_guest(): void
+    {
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramStartUpdate('/read'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertSame([BotReplies::guest()], $this->messenger()->texts());
+    }
+
+    public function test_read_lists_reading_books(): void
+    {
+        $user = User::factory()->withTelegram(111222333)->create();
+        LibraryItem::factory()->for($user)->for(Book::factory()->create(['title' => 'The Hobbit']))->reading()->create();
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramStartUpdate('/read'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertStringContainsString('The Hobbit', $this->messenger()->texts()[0]);
+    }
+
+    public function test_read_start_and_stop_with_a_page(): void
+    {
+        $user = User::factory()->withTelegram(111222333)->create();
+        $item = LibraryItem::factory()->for($user)->for(
+            Book::factory()->create(['title' => 'The Hobbit', 'page_count' => 300]),
+        )->reading()->create(['current_page' => 10]);
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramCallbackUpdate('read:start:'.$item->id),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertNull(ReadingSession::openFor($user));
+        $this->assertStringContainsString('starting from', implode("\n", $this->messenger()->texts()));
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramStartUpdate('10'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertNotNull(ReadingSession::openFor($user));
+        $this->assertStringContainsString('Started reading', implode("\n", $this->messenger()->texts()));
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramCallbackUpdate('read:stop:'.$item->id),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertStringContainsString('What page', implode("\n", $this->messenger()->texts()));
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramStartUpdate('22'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertSame(22, $item->fresh()?->current_page);
+        $this->assertNull(ReadingSession::openFor($user));
+        $this->assertStringContainsString('page 22', implode("\n", $this->messenger()->texts()));
+    }
+
+    public function test_read_cancel_leaves_the_page_unchanged(): void
+    {
+        $user = User::factory()->withTelegram(111222333)->create();
+        $item = LibraryItem::factory()->for($user)->for(Book::factory()->create(['title' => 'The Hobbit']))->reading()->create(['current_page' => 7]);
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramCallbackUpdate('read:start:'.$item->id),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramStartUpdate('7'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramCallbackUpdate('read:cancel:'.$item->id),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertSame(7, $item->fresh()?->current_page);
+        $this->assertNull(ReadingSession::openFor($user));
     }
 
     protected function messenger(): FakeTelegramMessenger

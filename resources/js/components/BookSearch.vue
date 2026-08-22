@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
+import { Heart } from '@lucide/vue';
 import { useDebounceFn } from '@vueuse/core';
 import { computed, ref } from 'vue';
 import LibraryController from '@/actions/App/Http/Controllers/LibraryController';
 import InputError from '@/components/InputError.vue';
 import { Input } from '@/components/ui/input';
+import { show as showBook } from '@/routes/books';
 
 export type BookSuggestion = {
     google_volume_id: string;
@@ -13,6 +15,7 @@ export type BookSuggestion = {
     description: string | null;
     cover_url: string | null;
     language: string | null;
+    in_library: boolean;
 };
 
 withDefaults(
@@ -64,7 +67,24 @@ function onQueryInput(value: string | number): void {
     void fetchSuggestions(String(value));
 }
 
-function addBook(volumeId: string): void {
+function openBook(volumeId: string): void {
+    router.visit(showBook.url(volumeId));
+}
+
+function addBook(volumeId: string, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (
+        suggestions.value.some(
+            (suggestion) =>
+                suggestion.google_volume_id === volumeId &&
+                suggestion.in_library,
+        )
+    ) {
+        return;
+    }
+
     addingId.value = volumeId;
 
     router.post(
@@ -72,10 +92,16 @@ function addBook(volumeId: string): void {
         { google_volume_id: volumeId },
         {
             preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                suggestions.value = suggestions.value.map((suggestion) =>
+                    suggestion.google_volume_id === volumeId
+                        ? { ...suggestion, in_library: true }
+                        : suggestion,
+                );
+            },
             onFinish: () => {
                 addingId.value = null;
-                suggestions.value = [];
-                query.value = '';
             },
         },
     );
@@ -93,8 +119,7 @@ function addBook(volumeId: string): void {
             @update:model-value="onQueryInput"
         />
         <p v-if="!compact" class="text-xs text-muted-foreground">
-            Suggestions appear after two characters. Your account language does
-            not limit results.
+            Open a title to read about it. The heart adds it to your library.
         </p>
 
         <div
@@ -107,36 +132,66 @@ function addBook(volumeId: string): void {
             <p v-if="searching" class="px-3 py-2 text-sm text-muted-foreground">
                 Searching…
             </p>
-            <button
+            <div
                 v-for="suggestion in suggestions"
                 :key="suggestion.google_volume_id"
-                type="button"
-                class="flex w-full items-start gap-3 px-3 py-2 text-left hover:bg-muted"
-                :disabled="addingId === suggestion.google_volume_id"
-                @click="addBook(suggestion.google_volume_id)"
+                class="flex items-start gap-2"
             >
-                <img
-                    v-if="suggestion.cover_url"
-                    :src="suggestion.cover_url"
-                    :alt="suggestion.title"
-                    class="h-14 w-10 shrink-0 rounded object-cover"
-                />
-                <div class="min-w-0">
-                    <p class="truncate text-sm font-medium">
-                        {{ suggestion.title }}
-                    </p>
-                    <p class="truncate text-xs text-muted-foreground">
-                        {{
-                            suggestion.authors.length
-                                ? suggestion.authors.join(', ')
-                                : 'Unknown author'
-                        }}
-                        <span v-if="suggestion.language">
-                            · {{ suggestion.language }}
-                        </span>
-                    </p>
-                </div>
-            </button>
+                <button
+                    type="button"
+                    class="flex min-w-0 flex-1 items-start gap-3 px-3 py-2 text-left hover:bg-muted"
+                    @click="openBook(suggestion.google_volume_id)"
+                >
+                    <img
+                        v-if="suggestion.cover_url"
+                        :src="suggestion.cover_url"
+                        :alt="suggestion.title"
+                        class="h-14 w-10 shrink-0 rounded object-cover"
+                    />
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-medium">
+                            {{ suggestion.title }}
+                        </p>
+                        <p class="truncate text-xs text-muted-foreground">
+                            {{
+                                suggestion.authors.length
+                                    ? suggestion.authors.join(', ')
+                                    : 'Unknown author'
+                            }}
+                            <span v-if="suggestion.language">
+                                · {{ suggestion.language }}
+                            </span>
+                        </p>
+                    </div>
+                </button>
+                <button
+                    type="button"
+                    class="mt-2 mr-2 rounded-full p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    :class="{
+                        'text-accent-foreground': suggestion.in_library,
+                    }"
+                    :disabled="addingId === suggestion.google_volume_id"
+                    :aria-label="
+                        suggestion.in_library
+                            ? 'Already in your library'
+                            : 'Add to library'
+                    "
+                    :data-test="
+                        suggestion.in_library
+                            ? 'suggestion-in-library'
+                            : 'add-suggestion'
+                    "
+                    @click="addBook(suggestion.google_volume_id, $event)"
+                >
+                    <Heart
+                        class="size-4"
+                        :class="{
+                            'fill-current text-accent-foreground':
+                                suggestion.in_library,
+                        }"
+                    />
+                </button>
+            </div>
         </div>
 
         <InputError v-if="!compact" :message="addError" />

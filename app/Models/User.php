@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Books\Models\LibraryItem;
+use App\Domain\Books\Models\ReadingSession;
 use App\Domain\Identity\Enums\Locale;
 use App\Domain\Identity\Models\TelegramIdentity;
 use Database\Factories\UserFactory;
@@ -35,6 +36,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $updated_at
  * @property-read TelegramIdentity|null $telegramIdentity
  * @property-read Collection<int, LibraryItem> $libraryItems
+ * @property-read Collection<int, ReadingSession> $readingSessions
  */
 #[Fillable(['name', 'email', 'password', 'locale'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
@@ -72,5 +74,13 @@ class User extends Authenticatable implements PasskeyUser
     public function libraryItems(): HasMany
     {
         return $this->hasMany(LibraryItem::class);
+    }
+
+    /**
+     * @return HasMany<ReadingSession, $this>
+     */
+    public function readingSessions(): HasMany
+    {
+        return $this->hasMany(ReadingSession::class);
     }
 }

@@ -2,47 +2,20 @@
 
 namespace App\Domain\Books\Actions;
 
-use App\Domain\Books\Contracts\BookProvider;
 use App\Domain\Books\Data\AddBookResult;
 use App\Domain\Books\Enums\LibraryStatus;
-use App\Domain\Books\Exceptions\BookNotFound;
-use App\Domain\Books\Exceptions\UnsupportedBookLanguage;
-use App\Domain\Books\Language\BlockedBookLanguages;
-use App\Domain\Books\Models\Book;
 use App\Domain\Books\Models\LibraryItem;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class ImportAndAddBook
 {
-    public function __construct(private readonly BookProvider $provider) {}
+    public function __construct(private readonly FindOrImportBook $findOrImportBook) {}
 
     public function handle(User $user, string $googleVolumeId): AddBookResult
     {
-        $card = $this->provider->find($googleVolumeId);
-
-        if ($card === null) {
-            throw new BookNotFound;
-        }
-
-        if (BlockedBookLanguages::contains($card->language)) {
-            throw new UnsupportedBookLanguage;
-        }
-
-        return DB::transaction(function () use ($user, $card): AddBookResult {
-            $book = Book::query()->updateOrCreate(
-                ['google_volume_id' => $card->googleVolumeId],
-                [
-                    'isbn_13' => $card->isbn13,
-                    'title' => $card->title,
-                    'authors' => $card->authors,
-                    'description' => $card->description,
-                    'cover_url' => $card->coverUrl,
-                    'language' => $card->language,
-                    'page_count' => $card->pageCount,
-                    'published_year' => $card->publishedYear,
-                ],
-            );
+        return DB::transaction(function () use ($user, $googleVolumeId): AddBookResult {
+            $book = $this->findOrImportBook->handle($googleVolumeId);
 
             $item = LibraryItem::query()->firstOrCreate(
                 [

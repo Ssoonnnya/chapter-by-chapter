@@ -91,6 +91,21 @@ final readonly class IncomingTelegramCallback
         ];
     }
 
+    /**
+     * @return array{action: string, id: int}|null
+     */
+    public function readAction(): ?array
+    {
+        if (! preg_match('/^read:(start|stop|cancel|pause|resume):(\d+)$/', $this->data, $matches)) {
+            return null;
+        }
+
+        return [
+            'action' => $matches[1],
+            'id' => (int) $matches[2],
+        ];
+    }
+
     private static function optionalString(mixed $value): ?string
     {
         return is_string($value) && $value !== '' ? $value : null;

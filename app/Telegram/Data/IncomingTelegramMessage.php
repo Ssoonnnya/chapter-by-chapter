@@ -82,6 +82,20 @@ final readonly class IncomingTelegramMessage
         return $this->commandArgument('library');
     }
 
+    public function isReadCommand(): bool
+    {
+        return $this->isCommand('read');
+    }
+
+    public function barePageNumber(): ?int
+    {
+        if (! preg_match('/^\d+$/u', trim($this->text))) {
+            return null;
+        }
+
+        return (int) $this->text;
+    }
+
     private function isCommand(string $name): bool
     {
         return (bool) preg_match('/^\/'.preg_quote($name, '/').'(?:@[A-Za-z0-9_]+)?(?:\s|$)/u', $this->text);

@@ -7,8 +7,11 @@ use App\Telegram\Data\IncomingTelegramMessage;
 use App\Telegram\Handlers\AddBookCallbackHandler;
 use App\Telegram\Handlers\LibraryCallbackHandler;
 use App\Telegram\Handlers\LibraryHandler;
+use App\Telegram\Handlers\ReadCallbackHandler;
+use App\Telegram\Handlers\ReadHandler;
 use App\Telegram\Handlers\SearchHandler;
 use App\Telegram\Handlers\StartHandler;
+use App\Telegram\Handlers\StopPageHandler;
 
 class TelegramWebhookProcessor
 {
@@ -16,8 +19,11 @@ class TelegramWebhookProcessor
         private readonly StartHandler $startHandler,
         private readonly SearchHandler $searchHandler,
         private readonly LibraryHandler $libraryHandler,
+        private readonly ReadHandler $readHandler,
+        private readonly StopPageHandler $stopPageHandler,
         private readonly AddBookCallbackHandler $addBookCallbackHandler,
         private readonly LibraryCallbackHandler $libraryCallbackHandler,
+        private readonly ReadCallbackHandler $readCallbackHandler,
     ) {}
 
     /**
@@ -30,6 +36,12 @@ class TelegramWebhookProcessor
         if ($callback !== null) {
             if ($callback->addVolumeId() !== null) {
                 $this->addBookCallbackHandler->handle($callback);
+
+                return;
+            }
+
+            if ($callback->readAction() !== null) {
+                $this->readCallbackHandler->handle($callback);
 
                 return;
             }
@@ -59,6 +71,16 @@ class TelegramWebhookProcessor
 
         if ($message->isLibraryCommand()) {
             $this->libraryHandler->handle($message);
+
+            return;
         }
+
+        if ($message->isReadCommand()) {
+            $this->readHandler->handle($message);
+
+            return;
+        }
+
+        $this->stopPageHandler->handle($message);
     }
 }
