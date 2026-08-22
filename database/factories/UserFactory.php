@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Domain\Identity\Enums\Locale;
+use App\Domain\Identity\Models\TelegramIdentity;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -27,6 +29,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'locale' => Locale::En,
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -56,5 +59,17 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
         ]);
+    }
+
+    /**
+     * Indicate that the user has a linked Telegram identity.
+     */
+    public function withTelegram(?int $telegramId = null): static
+    {
+        return $this->afterCreating(function (User $user) use ($telegramId): void {
+            TelegramIdentity::factory()->for($user)->create([
+                'telegram_id' => $telegramId ?? fake()->unique()->numberBetween(1_000_000, 2_000_000_000),
+            ]);
+        });
     }
 }
