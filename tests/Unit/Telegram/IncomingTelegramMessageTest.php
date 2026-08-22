@@ -51,4 +51,30 @@ class IncomingTelegramMessageTest extends TestCase
         $this->assertFalse($message->isStartCommand());
         $this->assertNull($message->startToken());
     }
+
+    public function test_it_parses_search_and_library_commands(): void
+    {
+        $search = IncomingTelegramMessage::tryFromWebhook([
+            'message' => [
+                'chat' => ['id' => 10],
+                'from' => ['id' => 10],
+                'text' => '/search Лісова пісня',
+            ],
+        ]);
+
+        $this->assertNotNull($search);
+        $this->assertTrue($search->isSearchCommand());
+        $this->assertSame('Лісова пісня', $search->searchQuery());
+
+        $library = IncomingTelegramMessage::tryFromWebhook([
+            'message' => [
+                'chat' => ['id' => 10],
+                'from' => ['id' => 10],
+                'text' => '/library',
+            ],
+        ]);
+
+        $this->assertNotNull($library);
+        $this->assertTrue($library->isLibraryCommand());
+    }
 }

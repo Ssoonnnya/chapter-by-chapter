@@ -59,13 +59,38 @@ final readonly class IncomingTelegramMessage
 
     public function startToken(): ?string
     {
-        if (! preg_match('/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+(.+))?$/u', $this->text, $matches)) {
+        return $this->commandArgument('start');
+    }
+
+    public function isSearchCommand(): bool
+    {
+        return $this->isCommand('search');
+    }
+
+    public function searchQuery(): ?string
+    {
+        return $this->commandArgument('search');
+    }
+
+    public function isLibraryCommand(): bool
+    {
+        return $this->isCommand('library');
+    }
+
+    private function isCommand(string $name): bool
+    {
+        return (bool) preg_match('/^\/'.preg_quote($name, '/').'(?:@[A-Za-z0-9_]+)?(?:\s|$)/u', $this->text);
+    }
+
+    private function commandArgument(string $name): ?string
+    {
+        if (! preg_match('/^\/'.preg_quote($name, '/').'(?:@[A-Za-z0-9_]+)?(?:\s+(.+))?$/u', $this->text, $matches)) {
             return null;
         }
 
-        $token = isset($matches[1]) ? trim($matches[1]) : '';
+        $argument = isset($matches[1]) ? trim($matches[1]) : '';
 
-        return $token === '' ? null : $token;
+        return $argument === '' ? null : $argument;
     }
 
     private static function optionalString(mixed $value): ?string

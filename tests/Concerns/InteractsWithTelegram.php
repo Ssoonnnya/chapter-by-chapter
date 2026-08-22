@@ -47,4 +47,40 @@ trait InteractsWithTelegram
             ],
         ];
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function telegramCallbackUpdate(string $data, int $telegramId = 111222333): array
+    {
+        return [
+            'update_id' => 2,
+            'callback_query' => [
+                'id' => 'callback-1',
+                'from' => [
+                    'id' => $telegramId,
+                    'is_bot' => false,
+                    'first_name' => 'Ada',
+                    'username' => 'ada',
+                ],
+                'message' => [
+                    'message_id' => 2,
+                    'date' => time(),
+                    'chat' => ['id' => $telegramId, 'type' => 'private'],
+                    'from' => ['id' => 1, 'is_bot' => true, 'first_name' => 'Bot'],
+                ],
+                'data' => $data,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function webhookHeaders(): array
+    {
+        return [
+            'X-Telegram-Bot-Api-Secret-Token' => (string) config('telegram.webhook_secret'),
+        ];
+    }
 }

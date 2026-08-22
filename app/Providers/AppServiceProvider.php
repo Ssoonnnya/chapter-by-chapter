@@ -60,5 +60,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('telegram-link', function (Request $request) {
             return Limit::perMinute(5)->by((string) ($request->user()?->id ?: $request->ip()));
         });
+
+        RateLimiter::for('book-search', function (Request $request) {
+            return Limit::perMinute(30)->by((string) ($request->user()?->id ?: $request->ip()));
+        });
     }
 }

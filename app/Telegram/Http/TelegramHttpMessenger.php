@@ -8,7 +8,35 @@ use RuntimeException;
 
 class TelegramHttpMessenger implements TelegramMessenger
 {
-    public function sendMessage(int $chatId, string $text): void
+    /**
+     * @param  array<string, mixed>|null  $replyMarkup
+     */
+    public function sendMessage(int $chatId, string $text, ?array $replyMarkup = null): void
+    {
+        $payload = [
+            'chat_id' => $chatId,
+            'text' => $text,
+        ];
+
+        if ($replyMarkup !== null) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        $this->post('sendMessage', $payload);
+    }
+
+    public function answerCallbackQuery(string $callbackQueryId, string $text): void
+    {
+        $this->post('answerCallbackQuery', [
+            'callback_query_id' => $callbackQueryId,
+            'text' => $text,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function post(string $method, array $payload): void
     {
         $token = config('telegram.bot_token');
 
@@ -18,13 +46,10 @@ class TelegramHttpMessenger implements TelegramMessenger
 
         $response = Http::baseUrl(rtrim((string) config('telegram.api_base_url'), '/'))
             ->asJson()
-            ->post("/bot{$token}/sendMessage", [
-                'chat_id' => $chatId,
-                'text' => $text,
-            ]);
+            ->post("/bot{$token}/{$method}", $payload);
 
         if ($response->failed()) {
-            throw new RuntimeException('Telegram sendMessage failed: '.$response->body());
+            throw new RuntimeException("Telegram {$method} failed: ".$response->body());
         }
     }
 }

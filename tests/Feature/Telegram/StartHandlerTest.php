@@ -88,14 +88,4 @@ class StartHandlerTest extends TestCase
 
         return $messenger;
     }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function webhookHeaders(): array
-    {
-        return [
-            'X-Telegram-Bot-Api-Secret-Token' => (string) config('telegram.webhook_secret'),
-        ];
-    }
 }

@@ -33,4 +33,39 @@ final class BotReplies
     {
         return 'This website account already has a Telegram connection.';
     }
+
+    public static function searchUsage(): string
+    {
+        return 'Search with /search and a title, for example: /search Лісова пісня';
+    }
+
+    public static function searchEmpty(): string
+    {
+        return 'No books found. Try another title. Russian editions are not listed.';
+    }
+
+    public static function added(string $title): string
+    {
+        return "Added: {$title}";
+    }
+
+    public static function alreadyInLibrary(string $title): string
+    {
+        return "Already in your library: {$title}";
+    }
+
+    public static function libraryEmpty(): string
+    {
+        return 'Your library is empty. Use /search to add a book.';
+    }
+
+    public static function bookNotFound(): string
+    {
+        return 'That book could not be added.';
+    }
+
+    public static function unsupportedLanguage(): string
+    {
+        return 'Russian-language books are not supported.';
+    }
 }
