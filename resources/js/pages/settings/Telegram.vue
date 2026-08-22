@@ -3,6 +3,7 @@ import { Form, Head } from '@inertiajs/vue3';
 import TelegramLinkController from '@/actions/App/Http/Controllers/Settings/TelegramLinkController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import TelegramLinkCard from '@/components/TelegramLinkCard.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -123,28 +124,11 @@ defineOptions({
                 </Button>
             </Form>
 
-            <div
-                v-if="props.linkUrl"
-                class="space-y-3 rounded-lg border p-4"
-                data-test="telegram-deep-link"
-            >
-                <p class="text-sm">
-                    Open this link in Telegram to finish connecting.
-                </p>
-                <p
-                    v-if="props.linkExpiresAt"
-                    class="text-xs text-muted-foreground"
-                >
-                    Expires at {{ props.linkExpiresAt }}
-                </p>
-                <Button
-                    as="a"
-                    :href="props.linkUrl"
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    Open Telegram
-                </Button>
+            <div v-if="props.linkUrl" class="rounded-lg border p-4">
+                <TelegramLinkCard
+                    :url="props.linkUrl"
+                    :expires-at="props.linkExpiresAt"
+                />
             </div>
         </div>
     </div>

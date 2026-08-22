@@ -67,6 +67,30 @@ final readonly class IncomingTelegramCallback
         return $volumeId === '' ? null : $volumeId;
     }
 
+    public function libraryFilter(): ?string
+    {
+        if (! preg_match('/^lib:f:(all|want|reading|finished)$/', $this->data, $matches)) {
+            return null;
+        }
+
+        return $matches[1];
+    }
+
+    /**
+     * @return array{id: int, status: string}|null
+     */
+    public function libraryStatusChange(): ?array
+    {
+        if (! preg_match('/^lib:s:(\d+):(want|reading|finished)$/', $this->data, $matches)) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $matches[1],
+            'status' => $matches[2],
+        ];
+    }
+
     private static function optionalString(mixed $value): ?string
     {
         return is_string($value) && $value !== '' ? $value : null;

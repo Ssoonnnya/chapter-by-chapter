@@ -75,12 +75,7 @@ export function initializeTheme(): void {
         return;
     }
 
-    // Initialize theme from saved preference or default to system...
-    const savedAppearance = getStoredAppearance();
-    updateTheme(savedAppearance || 'system');
-
-    // Set up system theme change listener...
-    mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+    updateTheme('light');
 }
 
 const appearance = ref<Appearance>('system');

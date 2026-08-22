@@ -76,5 +76,16 @@ class IncomingTelegramMessageTest extends TestCase
 
         $this->assertNotNull($library);
         $this->assertTrue($library->isLibraryCommand());
+        $this->assertNull($library->libraryFilter());
+
+        $filtered = IncomingTelegramMessage::tryFromWebhook([
+            'message' => [
+                'chat' => ['id' => 10],
+                'from' => ['id' => 10],
+                'text' => '/library reading',
+            ],
+        ]);
+
+        $this->assertSame('reading', $filtered?->libraryFilter());
     }
 }

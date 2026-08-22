@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Telegram;
 
+use App\Domain\Books\Enums\LibraryStatus;
 use App\Domain\Books\Models\Book;
 use App\Domain\Books\Models\LibraryItem;
 use App\Domain\Books\Testing\FakeBookProvider;
@@ -87,6 +88,39 @@ class BookBotTest extends TestCase
         )->assertOk();
 
         $this->assertStringContainsString('The Hobbit', $this->messenger()->texts()[0]);
+        $this->assertStringContainsString('Want to read', $this->messenger()->texts()[0]);
+    }
+
+    public function test_library_status_callback_updates_the_shelf(): void
+    {
+        $user = User::factory()->withTelegram(111222333)->create();
+        $item = LibraryItem::factory()->for($user)->for(Book::factory()->create(['title' => 'The Hobbit']))->create();
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramCallbackUpdate('lib:s:'.$item->id.':reading'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $this->assertSame(LibraryStatus::Reading, $item->fresh()?->status);
+        $this->assertStringContainsString('Reading', implode("\n", $this->messenger()->texts()));
+    }
+
+    public function test_library_filter_callback_lists_only_matching_books(): void
+    {
+        $user = User::factory()->withTelegram(111222333)->create();
+        LibraryItem::factory()->for($user)->for(Book::factory()->create(['title' => 'Wanted']))->create();
+        LibraryItem::factory()->for($user)->reading()->for(Book::factory()->create(['title' => 'Current']))->create();
+
+        $this->postJson(
+            route('telegram.webhook'),
+            $this->telegramCallbackUpdate('lib:f:reading'),
+            $this->webhookHeaders(),
+        )->assertOk();
+
+        $text = $this->messenger()->texts()[0];
+        $this->assertStringContainsString('Current', $text);
+        $this->assertStringNotContainsString('Wanted', $text);
     }
 
     protected function messenger(): FakeTelegramMessenger

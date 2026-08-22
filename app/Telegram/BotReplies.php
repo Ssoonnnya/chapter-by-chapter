@@ -68,4 +68,14 @@ final class BotReplies
     {
         return 'Russian-language books are not supported.';
     }
+
+    public static function statusUpdated(string $title, string $status): string
+    {
+        return "{$title} is now marked as {$status}.";
+    }
+
+    public static function libraryItemMissing(): string
+    {
+        return 'That book is not in your library.';
+    }
 }

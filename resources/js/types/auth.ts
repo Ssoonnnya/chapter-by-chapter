@@ -11,8 +11,14 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type TelegramConnection = {
+    telegram_id: number;
+    username: string | null;
+};
+
 export type Auth = {
-    user: User;
+    user: User | null;
+    telegram: TelegramConnection | null;
 };
 
 export type Passkey = {

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Books\Models;
 
+use App\Domain\Books\Enums\LibraryStatus;
 use App\Models\User;
 use Database\Factories\LibraryItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,12 +15,14 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $user_id
  * @property int $book_id
+ * @property LibraryStatus $status
+ * @property int $current_page
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property-read Book $book
  * @property-read User $user
  */
-#[Fillable(['user_id', 'book_id'])]
+#[Fillable(['user_id', 'book_id', 'status', 'current_page'])]
 class LibraryItem extends Model
 {
     /** @use HasFactory<LibraryItemFactory> */
@@ -28,6 +31,17 @@ class LibraryItem extends Model
     protected static function newFactory(): LibraryItemFactory
     {
         return LibraryItemFactory::new();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'status' => LibraryStatus::class,
+            'current_page' => 'integer',
+        ];
     }
 
     /**

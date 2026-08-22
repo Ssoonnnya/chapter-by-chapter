@@ -5,6 +5,7 @@ namespace App\Telegram;
 use App\Telegram\Data\IncomingTelegramCallback;
 use App\Telegram\Data\IncomingTelegramMessage;
 use App\Telegram\Handlers\AddBookCallbackHandler;
+use App\Telegram\Handlers\LibraryCallbackHandler;
 use App\Telegram\Handlers\LibraryHandler;
 use App\Telegram\Handlers\SearchHandler;
 use App\Telegram\Handlers\StartHandler;
@@ -16,6 +17,7 @@ class TelegramWebhookProcessor
         private readonly SearchHandler $searchHandler,
         private readonly LibraryHandler $libraryHandler,
         private readonly AddBookCallbackHandler $addBookCallbackHandler,
+        private readonly LibraryCallbackHandler $libraryCallbackHandler,
     ) {}
 
     /**
@@ -26,7 +28,13 @@ class TelegramWebhookProcessor
         $callback = IncomingTelegramCallback::tryFromWebhook($payload);
 
         if ($callback !== null) {
-            $this->addBookCallbackHandler->handle($callback);
+            if ($callback->addVolumeId() !== null) {
+                $this->addBookCallbackHandler->handle($callback);
+
+                return;
+            }
+
+            $this->libraryCallbackHandler->handle($callback);
 
             return;
         }

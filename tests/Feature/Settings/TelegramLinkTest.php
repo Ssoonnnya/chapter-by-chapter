@@ -116,6 +116,32 @@ class TelegramLinkTest extends TestCase
         $this->assertDatabaseMissing('telegram_identities', ['user_id' => $other->id]);
     }
 
+    public function test_json_generate_returns_a_telegram_url(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson(route('telegram.store'));
+
+        $response
+            ->assertOk()
+            ->assertJsonStructure(['url', 'expires_at']);
+
+        $this->assertIsString($response->json('url'));
+        $this->assertStringContainsString('https://t.me/chapter_bot?start=', (string) $response->json('url'));
+        $this->assertDatabaseCount('telegram_link_tokens', 1);
+    }
+
+    public function test_json_generate_is_rejected_when_already_linked(): void
+    {
+        $user = User::factory()->withTelegram()->create();
+
+        $this->actingAs($user)
+            ->postJson(route('telegram.store'))
+            ->assertStatus(409);
+
+        $this->assertDatabaseCount('telegram_link_tokens', 0);
+    }
+
     public function test_regenerating_from_the_website_invalidates_the_previous_token(): void
     {
         $user = User::factory()->create();

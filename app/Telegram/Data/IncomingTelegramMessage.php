@@ -77,6 +77,11 @@ final readonly class IncomingTelegramMessage
         return $this->isCommand('library');
     }
 
+    public function libraryFilter(): ?string
+    {
+        return $this->commandArgument('library');
+    }
+
     private function isCommand(string $name): bool
     {
         return (bool) preg_match('/^\/'.preg_quote($name, '/').'(?:@[A-Za-z0-9_]+)?(?:\s|$)/u', $this->text);

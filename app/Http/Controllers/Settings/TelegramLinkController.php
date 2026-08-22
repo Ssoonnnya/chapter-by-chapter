@@ -8,6 +8,7 @@ use App\Domain\Identity\Exceptions\TelegramBotUsernameMissing;
 use App\Domain\Identity\Exceptions\UserAlreadyHasTelegram;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,15 +37,30 @@ class TelegramLinkController extends Controller
     /**
      * Generate a one-time Telegram deep link.
      */
-    public function store(Request $request, GenerateTelegramLinkToken $generate): RedirectResponse
+    public function store(Request $request, GenerateTelegramLinkToken $generate): RedirectResponse|JsonResponse
     {
         try {
             $result = $generate->handle($this->user($request)->load('telegramIdentity'));
-        } catch (UserAlreadyHasTelegram) {
+        } catch (UserAlreadyHasTelegram $exception) {
+            if ($this->wantsJsonPayload($request)) {
+                return response()->json(['message' => $exception->getMessage()], 409);
+            }
+
             return to_route('telegram.edit');
-        } catch (TelegramBotUsernameMissing) {
+        } catch (TelegramBotUsernameMissing $exception) {
+            if ($this->wantsJsonPayload($request)) {
+                return response()->json(['message' => $exception->getMessage()], 422);
+            }
+
             return to_route('telegram.edit')->withErrors([
                 'telegram' => __('Telegram bot is not configured.'),
+            ]);
+        }
+
+        if ($this->wantsJsonPayload($request)) {
+            return response()->json([
+                'url' => $result->url,
+                'expires_at' => $result->expiresAt->toIso8601String(),
             ]);
         }
 
@@ -77,5 +93,10 @@ class TelegramLinkController extends Controller
         }
 
         return $user;
+    }
+
+    private function wantsJsonPayload(Request $request): bool
+    {
+        return $request->wantsJson() && $request->header('X-Inertia') === null;
     }
 }

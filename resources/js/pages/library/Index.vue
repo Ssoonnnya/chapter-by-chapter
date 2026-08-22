@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
-import { useDebounceFn } from '@vueuse/core';
-import { computed, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import LibraryController from '@/actions/App/Http/Controllers/LibraryController';
+import BookSearch from '@/components/BookSearch.vue';
 import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { index as library } from '@/routes/library';
+
+type ShelfStatus = 'want' | 'reading' | 'finished';
 
 type LibraryBook = {
     id: number;
@@ -15,29 +17,21 @@ type LibraryBook = {
     description: string | null;
     cover_url: string | null;
     language: string | null;
+    status: ShelfStatus;
+    current_page: number;
+    page_count: number | null;
 };
 
-type Suggestion = {
-    google_volume_id: string;
-    title: string;
-    authors: string[];
-    description: string | null;
-    cover_url: string | null;
-    language: string | null;
-};
-
-defineProps<{
+const props = defineProps<{
     books: LibraryBook[];
+    filter: ShelfStatus | null;
 }>();
 
-const page = usePage();
-const addError = computed(
-    () => page.props.errors.google_volume_id as string | undefined,
-);
-const query = ref('');
-const suggestions = ref<Suggestion[]>([]);
-const searching = ref(false);
-const addingId = ref<string | null>(null);
+const statuses: { value: ShelfStatus; label: string }[] = [
+    { value: 'want', label: 'Want to read' },
+    { value: 'reading', label: 'Reading' },
+    { value: 'finished', label: 'Finished' },
+];
 
 defineOptions({
     layout: {
@@ -50,51 +44,28 @@ defineOptions({
     },
 });
 
-const fetchSuggestions = useDebounceFn(async (value: string) => {
-    if (value.trim().length < 2) {
-        suggestions.value = [];
-        searching.value = false;
-
-        return;
-    }
-
-    searching.value = true;
-
-    const response = await fetch(
-        `${LibraryController.suggestions.url()}?q=${encodeURIComponent(value)}`,
-        { headers: { Accept: 'application/json' } },
-    );
-
-    if (!response.ok) {
-        suggestions.value = [];
-        searching.value = false;
-
-        return;
-    }
-
-    const payload = (await response.json()) as { data: Suggestion[] };
-    suggestions.value = payload.data;
-    searching.value = false;
-}, 300);
-
-function onQueryInput(value: string | number): void {
-    void fetchSuggestions(String(value));
+function filterBy(status: ShelfStatus | null): void {
+    router.get(library.url(), status ? { status } : {}, {
+        preserveScroll: true,
+        preserveState: true,
+    });
 }
 
-function addBook(volumeId: string): void {
-    addingId.value = volumeId;
+function updateStatus(id: number, status: ShelfStatus): void {
+    router.patch(
+        LibraryController.updateStatus.url(id),
+        { status },
+        { preserveScroll: true },
+    );
+}
 
-    router.post(
-        LibraryController.store.url(),
-        { google_volume_id: volumeId },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                addingId.value = null;
-                suggestions.value = [];
-                query.value = '';
-            },
-        },
+function savePage(id: number, event: Event): void {
+    const value = Number((event.target as HTMLInputElement).value);
+
+    router.patch(
+        LibraryController.updatePage.url(id),
+        { current_page: value },
+        { preserveScroll: true },
     );
 }
 </script>
@@ -108,65 +79,28 @@ function addBook(volumeId: string): void {
             description="Search by title in any language. Russian editions are not listed."
         />
 
-        <div class="relative max-w-xl space-y-2">
-            <Input
-                v-model="query"
-                type="search"
-                placeholder="Search for a book title…"
-                autocomplete="off"
-                data-test="book-search"
-                @update:model-value="onQueryInput"
-            />
-            <p class="text-xs text-muted-foreground">
-                Suggestions appear after two characters. Your account language
-                does not limit results.
-            </p>
-
-            <div
-                v-if="searching || suggestions.length > 0"
-                class="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md"
-                data-test="book-suggestions"
-            >
-                <p
-                    v-if="searching"
-                    class="px-3 py-2 text-sm text-muted-foreground"
-                >
-                    Searching…
-                </p>
-                <button
-                    v-for="suggestion in suggestions"
-                    :key="suggestion.google_volume_id"
-                    type="button"
-                    class="flex w-full items-start gap-3 px-3 py-2 text-left hover:bg-muted"
-                    :disabled="addingId === suggestion.google_volume_id"
-                    @click="addBook(suggestion.google_volume_id)"
-                >
-                    <img
-                        v-if="suggestion.cover_url"
-                        :src="suggestion.cover_url"
-                        :alt="suggestion.title"
-                        class="h-14 w-10 shrink-0 rounded object-cover"
-                    />
-                    <div class="min-w-0">
-                        <p class="truncate text-sm font-medium">
-                            {{ suggestion.title }}
-                        </p>
-                        <p class="truncate text-xs text-muted-foreground">
-                            {{
-                                suggestion.authors.length
-                                    ? suggestion.authors.join(', ')
-                                    : 'Unknown author'
-                            }}
-                            <span v-if="suggestion.language">
-                                · {{ suggestion.language }}
-                            </span>
-                        </p>
-                    </div>
-                </button>
-            </div>
+        <div class="max-w-xl">
+            <BookSearch />
         </div>
 
-        <InputError class="max-w-xl" :message="addError" />
+        <div class="flex flex-wrap gap-2" data-test="shelf-filters">
+            <Button
+                size="sm"
+                :variant="props.filter === null ? 'default' : 'outline'"
+                @click="filterBy(null)"
+            >
+                All
+            </Button>
+            <Button
+                v-for="item in statuses"
+                :key="item.value"
+                size="sm"
+                :variant="props.filter === item.value ? 'default' : 'outline'"
+                @click="filterBy(item.value)"
+            >
+                {{ item.label }}
+            </Button>
+        </div>
 
         <div
             v-if="books.length === 0"
@@ -188,22 +122,62 @@ function addBook(volumeId: string): void {
                     :alt="book.title"
                     class="h-24 w-16 shrink-0 rounded object-cover"
                 />
-                <div class="min-w-0 space-y-1">
-                    <h2 class="font-medium">{{ book.title }}</h2>
-                    <p class="text-sm text-muted-foreground">
-                        {{
-                            book.authors.length
-                                ? book.authors.join(', ')
-                                : 'Unknown author'
-                        }}
-                        <span v-if="book.language"> · {{ book.language }}</span>
-                    </p>
-                    <p
-                        v-if="book.description"
-                        class="line-clamp-3 text-sm text-muted-foreground"
-                    >
-                        {{ book.description }}
-                    </p>
+                <div class="min-w-0 flex-1 space-y-3">
+                    <div class="space-y-1">
+                        <h2 class="font-medium">{{ book.title }}</h2>
+                        <p class="text-sm text-muted-foreground">
+                            {{
+                                book.authors.length
+                                    ? book.authors.join(', ')
+                                    : 'Unknown author'
+                            }}
+                            <span v-if="book.language">
+                                · {{ book.language }}
+                            </span>
+                        </p>
+                        <p
+                            v-if="book.description"
+                            class="line-clamp-3 text-sm text-muted-foreground"
+                        >
+                            {{ book.description }}
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <Button
+                            v-for="item in statuses"
+                            :key="item.value"
+                            size="sm"
+                            :variant="
+                                book.status === item.value
+                                    ? 'default'
+                                    : 'outline'
+                            "
+                            @click="updateStatus(book.id, item.value)"
+                        >
+                            {{ item.label }}
+                        </Button>
+                    </div>
+
+                    <div class="flex max-w-xs items-end gap-2">
+                        <div class="grid flex-1 gap-1">
+                            <Label :for="`page-${book.id}`">Page</Label>
+                            <Input
+                                :id="`page-${book.id}`"
+                                type="number"
+                                min="0"
+                                :max="book.page_count ?? undefined"
+                                :default-value="book.current_page"
+                                @change="savePage(book.id, $event)"
+                            />
+                        </div>
+                        <p
+                            v-if="book.page_count"
+                            class="pb-2 text-sm text-muted-foreground"
+                        >
+                            / {{ book.page_count }}
+                        </p>
+                    </div>
                 </div>
             </li>
         </ul>

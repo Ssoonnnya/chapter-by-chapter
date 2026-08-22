@@ -2,6 +2,7 @@
 
 namespace App\Domain\Books\Actions;
 
+use App\Domain\Books\Enums\LibraryStatus;
 use App\Domain\Books\Models\LibraryItem;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -11,10 +12,11 @@ class ListLibrary
     /**
      * @return Collection<int, LibraryItem>
      */
-    public function handle(User $user): Collection
+    public function handle(User $user, ?LibraryStatus $status = null): Collection
     {
         return $user->libraryItems()
             ->with('book')
+            ->when($status instanceof LibraryStatus, fn ($query) => $query->where('status', $status))
             ->latest()
             ->get();
     }

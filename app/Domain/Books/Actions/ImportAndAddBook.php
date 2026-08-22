@@ -4,6 +4,7 @@ namespace App\Domain\Books\Actions;
 
 use App\Domain\Books\Contracts\BookProvider;
 use App\Domain\Books\Data\AddBookResult;
+use App\Domain\Books\Enums\LibraryStatus;
 use App\Domain\Books\Exceptions\BookNotFound;
 use App\Domain\Books\Exceptions\UnsupportedBookLanguage;
 use App\Domain\Books\Language\BlockedBookLanguages;
@@ -43,10 +44,16 @@ class ImportAndAddBook
                 ],
             );
 
-            $item = LibraryItem::query()->firstOrCreate([
-                'user_id' => $user->id,
-                'book_id' => $book->id,
-            ]);
+            $item = LibraryItem::query()->firstOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'book_id' => $book->id,
+                ],
+                [
+                    'status' => LibraryStatus::Want,
+                    'current_page' => 0,
+                ],
+            );
 
             return new AddBookResult(
                 book: $book,

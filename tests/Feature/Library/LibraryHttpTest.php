@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Library;
 
+use App\Domain\Books\Models\Book;
 use App\Domain\Books\Models\LibraryItem;
 use App\Domain\Books\Testing\FakeBookProvider;
 use App\Models\User;
@@ -67,7 +68,58 @@ class LibraryHttpTest extends TestCase
             ->post(route('library.store'), ['google_volume_id' => 'vol-hobbit'])
             ->assertRedirect(route('library.index'));
 
-        $this->assertDatabaseHas('library_items', ['user_id' => $user->id]);
+        $this->assertDatabaseHas('library_items', [
+            'user_id' => $user->id,
+            'status' => 'want',
+            'current_page' => 0,
+        ]);
+    }
+
+    public function test_library_can_be_filtered_by_status(): void
+    {
+        $user = User::factory()->create();
+        LibraryItem::factory()->for($user)->create();
+        LibraryItem::factory()->for($user)->reading()->create();
+
+        $this->actingAs($user)
+            ->get(route('library.index', ['status' => 'reading']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('library/Index')
+                ->where('filter', 'reading')
+                ->has('books', 1)
+                ->where('books.0.status', 'reading'),
+            );
+    }
+
+    public function test_user_can_update_status_and_page(): void
+    {
+        $user = User::factory()->create();
+        $item = LibraryItem::factory()->for($user)->for(
+            Book::factory()->create(['page_count' => 300]),
+        )->create();
+
+        $this->actingAs($user)
+            ->patch(route('library.status', $item), ['status' => 'reading'])
+            ->assertRedirect();
+
+        $this->actingAs($user)
+            ->from(route('library.index'))
+            ->patch(route('library.page', $item), ['current_page' => 25])
+            ->assertRedirect();
+
+        $item->refresh();
+        $this->assertSame('reading', $item->status->value);
+        $this->assertSame(25, $item->current_page);
+    }
+
+    public function test_user_cannot_update_someone_elses_item(): void
+    {
+        $item = LibraryItem::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->patch(route('library.status', $item), ['status' => 'finished'])
+            ->assertNotFound();
     }
 
     public function test_adding_a_russian_volume_is_rejected(): void
